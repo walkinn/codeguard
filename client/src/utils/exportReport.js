@@ -1,13 +1,5 @@
 // Builds a markdown audit report and triggers a browser download.
 
-const SEVERITY_EMOJI = {
-  critical: '🔴',
-  high: '🟠',
-  medium: '🟡',
-  low: '🔵',
-  info: '⚪',
-};
-
 function formatFenceLang(language) {
   if (!language || language === 'auto' || language === 'plaintext') return '';
   return language;
@@ -19,7 +11,7 @@ export function buildMarkdownReport(result) {
   const lang = formatFenceLang(result.language);
 
   const lines = [
-    '# CodeGuard AI — Security Audit Report',
+    '# codeguard — Security Audit Report',
     '',
     `**Date:** ${date}`,
     `**Language:** ${result.language || 'unknown'}`,
@@ -42,11 +34,10 @@ export function buildMarkdownReport(result) {
   }
 
   result.issues.forEach(issue => {
-    const emoji = SEVERITY_EMOJI[issue.severity] || '⚪';
     const lineRange = issue.line_end && issue.line_end !== issue.line_start
       ? `Lines ${issue.line_start}-${issue.line_end}`
       : `Line ${issue.line_start}`;
-    lines.push(`### ${emoji} ${issue.severity?.toUpperCase()} — ${issue.title} (${lineRange})`);
+    lines.push(`### ${issue.severity?.toUpperCase()} — ${issue.title} (${lineRange})`);
     lines.push('');
     if (issue.description) {
       lines.push(`**Description:** ${issue.description}`);
@@ -95,7 +86,7 @@ export function buildMarkdownReport(result) {
 export function buildTextSummary(result) {
   const s = result.summary || {};
   return [
-    `CodeGuard AI — Grade ${result.overall_grade} (${result.overall_score}/100)`,
+    `codeguard — Grade ${result.overall_grade} (${result.overall_score}/100)`,
     result.verdict || '',
     `Issues — Critical: ${s.critical_count || 0}, High: ${s.high_count || 0}, Medium: ${s.medium_count || 0}, Low: ${s.low_count || 0}`,
     `Security: ${s.security_issues || 0} | Bugs: ${s.bug_issues || 0} | Perf: ${s.performance_issues || 0} | Style: ${s.style_issues || 0}`,

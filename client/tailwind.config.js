@@ -4,35 +4,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-base': '#0f1419',
-        'bg-card': '#1a2028',
-        'bg-elevated': '#212832',
-        'border-subtle': '#2a323d',
-        'accent': '#5eead4',
-        'severity-critical': '#ef4444',
-        'severity-high': '#f97316',
-        'severity-medium': '#eab308',
-        'severity-low': '#3b82f6',
-        'severity-info': '#6b7280',
+        'cat-security': '#ff3b3b',
+        'cat-bugs': '#ffcc00',
+        'cat-performance': '#3b82f6',
+        'cat-style': '#a855f7',
+        'grade-a': '#22c55e',
+        'grade-b': '#84cc16',
+        'grade-c': '#eab308',
+        'grade-d': '#f97316',
+        'grade-f': '#ef4444',
+      },
+      fontFamily: {
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       animation: {
-        'pulse-red': 'pulse-red 2s ease-in-out infinite',
-        'scan': 'scan 2s linear infinite',
         'fade-in-up': 'fade-in-up 0.4s ease-out forwards',
-        'ring-fill': 'ring-fill 1.5s ease-out forwards',
+        'fade-in': 'fade-in 0.4s ease-out forwards',
+        'dot-pulse': 'dot-pulse 1.4s ease-in-out infinite',
       },
       keyframes: {
-        'pulse-red': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.4)' },
-          '50%': { boxShadow: '0 0 0 8px rgba(239, 68, 68, 0)' },
-        },
-        'scan': {
-          '0%': { transform: 'translateY(-100%)' },
-          '100%': { transform: 'translateY(100%)' },
-        },
         'fade-in-up': {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'dot-pulse': {
+          '0%, 100%': { opacity: '0.3' },
+          '50%': { opacity: '1' },
         },
       },
     },

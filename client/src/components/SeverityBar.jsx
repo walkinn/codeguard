@@ -1,10 +1,10 @@
-// Horizontal severity breakdown; clicking a segment filters the issue list.
+// Severity breakdown — thin horizontal line segments + clean filter pills with dots.
 
 const LEVELS = [
-  { key: 'critical', label: 'Critical', color: 'bg-severity-critical', dot: '🔴' },
-  { key: 'high', label: 'High', color: 'bg-severity-high', dot: '🟠' },
-  { key: 'medium', label: 'Medium', color: 'bg-severity-medium', dot: '🟡' },
-  { key: 'low', label: 'Low', color: 'bg-severity-low', dot: '🔵' },
+  { key: 'critical', label: 'CRITICAL', color: '#ff3b3b' },
+  { key: 'high',     label: 'HIGH',     color: '#f97316' },
+  { key: 'medium',   label: 'MEDIUM',   color: '#eab308' },
+  { key: 'low',      label: 'LOW',      color: '#3b82f6' },
 ];
 
 export default function SeverityBar({ summary, activeFilter, onFilterChange }) {
@@ -15,36 +15,43 @@ export default function SeverityBar({ summary, activeFilter, onFilterChange }) {
     low: summary.low_count || 0,
   };
   const total = counts.critical + counts.high + counts.medium + counts.low || 1;
-  const hasCritical = counts.critical > 0;
 
   return (
-    <div className={`bg-bg-card border border-border-subtle rounded-xl p-4 ${hasCritical ? 'animate-pulse-red' : ''}`}>
-      <div className="flex h-3 rounded-full overflow-hidden mb-3 bg-bg-elevated">
+    <div className="glass p-4 animate-fade-in-up" style={{ animationDelay: '60ms' }}>
+      <div className="flex h-0.5 rounded-full overflow-hidden mb-3 bg-white/5">
         {LEVELS.map(({ key, color }) => {
           const width = (counts[key] / total) * 100;
           if (width === 0) return null;
           return (
             <div
               key={key}
-              className={`${color} transition-all`}
-              style={{ width: `${width}%` }}
+              style={{ width: `${width}%`, background: color }}
               title={`${key}: ${counts[key]}`}
             />
           );
         })}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => onFilterChange(null)}
-          className={`text-xs px-2 py-1 rounded transition ${!activeFilter ? 'bg-bg-elevated text-white' : 'text-gray-400 hover:text-white'}`}
+          className={`text-[11px] px-2.5 py-1 rounded-full transition border ${
+            !activeFilter
+              ? 'bg-white/8 text-white border-white/20'
+              : 'text-white/45 border-transparent hover:text-white hover:bg-white/4'
+          }`}
         >All</button>
-        {LEVELS.map(({ key, label, dot }) => (
+        {LEVELS.map(({ key, label, color }) => (
           <button
             key={key}
             onClick={() => onFilterChange(activeFilter === key ? null : key)}
-            className={`text-xs px-2 py-1 rounded transition ${activeFilter === key ? 'bg-bg-elevated text-white' : 'text-gray-400 hover:text-white'}`}
+            className={`text-[11px] px-2.5 py-1 rounded-full transition border inline-flex items-center gap-1.5 font-mono tracking-wide ${
+              activeFilter === key
+                ? 'bg-white/8 text-white border-white/20'
+                : 'text-white/45 border-transparent hover:text-white hover:bg-white/4'
+            }`}
           >
-            {dot} {label}: {counts[key]}
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+            {label} {counts[key]}
           </button>
         ))}
       </div>

@@ -7,11 +7,11 @@ import LoadingAnimation from './LoadingAnimation.jsx';
 import { buildMarkdownReport, downloadMarkdown, buildTextSummary } from '../utils/exportReport.js';
 
 const CATEGORIES = [
-  { key: 'all', label: 'All', icon: '📋' },
-  { key: 'security', label: 'Security', icon: '🔒' },
-  { key: 'bug', label: 'Bugs', icon: '🐛' },
-  { key: 'performance', label: 'Performance', icon: '⚡' },
-  { key: 'style', label: 'Style', icon: '✨' },
+  { key: 'all',         label: 'All',         color: 'rgba(255,255,255,0.5)' },
+  { key: 'security',    label: 'Security',    color: '#ff3b3b' },
+  { key: 'bug',         label: 'Bugs',        color: '#ffcc00' },
+  { key: 'performance', label: 'Performance', color: '#3b82f6' },
+  { key: 'style',       label: 'Style',       color: '#a855f7' },
 ];
 
 export default function ResultsPanel({ result, loading, linesAnalyzed, onLineClick, onApplyFix, onApplyAllFixes, onToast }) {
@@ -39,7 +39,7 @@ export default function ResultsPanel({ result, loading, linesAnalyzed, onLineCli
 
   if (loading) {
     return (
-      <div className="h-full overflow-auto">
+      <div className="h-full">
         <LoadingAnimation linesAnalyzed={linesAnalyzed} />
       </div>
     );
@@ -47,18 +47,19 @@ export default function ResultsPanel({ result, loading, linesAnalyzed, onLineCli
 
   if (!result) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center px-8 text-gray-400">
-        <svg className="w-16 h-16 text-gray-600 mb-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+      <div className="h-full flex flex-col items-center justify-center text-center px-8">
+        <svg className="w-12 h-12 text-white/30 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" aria-hidden>
+          <path d="M12 2 4 5v6c0 5 3.5 9.3 8 11 4.5-1.7 8-6 8-11V5l-8-3z" />
         </svg>
-        <h2 className="text-lg font-medium text-white">Ready to audit</h2>
-        <p className="text-sm mt-1 max-w-sm">Paste code or a GitHub PR URL, pick which checks to run, and click Run Review.</p>
+        <h2 className="text-sm font-medium text-white/85">Ready to audit</h2>
+        <p className="text-xs mt-2 max-w-sm text-white/40 leading-relaxed">
+          Paste code or a GitHub PR URL, pick which checks to run, and click Run Review.
+        </p>
       </div>
     );
   }
 
   const issuesFound = result.issues.length;
-  const hasCritical = (result.summary.critical_count || 0) > 0;
 
   const handleDownload = () => {
     const md = buildMarkdownReport(result);
@@ -91,23 +92,22 @@ export default function ResultsPanel({ result, loading, linesAnalyzed, onLineCli
         onFilterChange={setSeverityFilter}
       />
 
-      <div className="flex flex-wrap gap-1 bg-bg-card border border-border-subtle rounded-lg p-1">
+      <div className="flex flex-wrap gap-1 glass p-1 animate-fade-in-up" style={{ animationDelay: '120ms' }}>
         {CATEGORIES.map(cat => {
           const count = cat.key === 'all' ? issuesFound : categoryCounts[cat.key] || 0;
           const active = categoryFilter === cat.key;
-          const showRedBadge = cat.key === 'security' && hasCritical;
           return (
             <button
               key={cat.key}
               onClick={() => setCategoryFilter(cat.key)}
-              className={`relative text-xs px-3 py-1.5 rounded transition ${
-                active ? 'bg-bg-elevated text-white' : 'text-gray-400 hover:text-white'
+              className={`text-xs px-3 py-1 rounded-full transition border inline-flex items-center gap-1.5 ${
+                active
+                  ? 'bg-white/8 text-white border-white/20'
+                  : 'text-white/50 border-transparent hover:text-white hover:bg-white/4'
               }`}
             >
-              {cat.icon} {cat.label} ({count})
-              {showRedBadge && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-severity-critical rounded-full" />
-              )}
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: cat.color }} />
+              {cat.label} ({count})
             </button>
           );
         })}
@@ -115,8 +115,8 @@ export default function ResultsPanel({ result, loading, linesAnalyzed, onLineCli
 
       <div className="flex flex-col gap-3">
         {filteredIssues.length === 0 ? (
-          <div className="text-sm text-gray-400 text-center py-8">
-            No issues in this filter. Try a different category or severity.
+          <div className="text-xs text-white/40 text-center py-10 glass">
+            No issues in this filter.
           </div>
         ) : (
           filteredIssues.map((issue, i) => (
@@ -132,12 +132,14 @@ export default function ResultsPanel({ result, loading, linesAnalyzed, onLineCli
         )}
       </div>
 
-      <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-bg-base/95 backdrop-blur border-t border-border-subtle flex flex-wrap gap-2 mt-auto">
-        <button onClick={onApplyAllFixes} className="btn-primary text-sm flex-1 min-w-[180px]">
-          🛡️ Apply All Fixes
-        </button>
-        <button onClick={handleDownload} className="btn-secondary text-sm">Download Report</button>
-        <button onClick={handleCopySummary} className="btn-secondary text-sm">Copy Summary</button>
+      <div className="sticky bottom-0 -mx-4 px-4 py-3 mt-auto bg-gradient-to-t from-black via-black/92 to-transparent">
+        <div className="glass-strong px-3 py-2.5 flex flex-wrap gap-2 items-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <button onClick={onApplyAllFixes} className="btn-primary flex-1 min-w-[160px]">
+            Apply All Fixes
+          </button>
+          <button onClick={handleDownload} className="btn-secondary">Download Report</button>
+          <button onClick={handleCopySummary} className="btn-secondary">Copy Summary</button>
+        </div>
       </div>
     </div>
   );

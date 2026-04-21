@@ -1,10 +1,10 @@
-// Express entry point — boots the CodeGuard API server.
+// Express entry point — boots the codeguard API server.
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import reviewRouter from './routes/review.js';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,5 +24,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🛡️  CodeGuard AI server listening on http://localhost:${PORT}`);
+  console.log(`codeguard server listening on http://localhost:${PORT}`);
 });

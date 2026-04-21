@@ -54,54 +54,65 @@ export default function GitHubPRInput({ onFileSelected, disabled }) {
   };
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-bg-card rounded-lg border border-border-subtle">
-      <label className="text-sm font-medium text-gray-300">
-        GitHub PR URL
-        <div className="flex gap-2 mt-2">
+    <div className="flex flex-col gap-4 p-5 glass h-full">
+      <div>
+        <label className="text-[10px] uppercase tracking-wider text-white/40 font-medium block mb-2">
+          GitHub PR URL
+        </label>
+        <div className="flex gap-2">
           <input
             type="text"
             placeholder="https://github.com/owner/repo/pull/123"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={disabled || loading}
-            className="flex-1 bg-bg-elevated border border-border-subtle rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-accent"
+            className="flex-1 glass-input"
           />
           <button
             onClick={fetchPr}
             disabled={!valid || loading || disabled}
-            className="btn-primary text-sm"
+            className="btn-primary whitespace-nowrap"
           >
             {loading ? 'Fetching…' : 'Fetch PR'}
           </button>
         </div>
         {url && !valid && (
-          <p className="text-xs text-severity-high mt-1">URL must match github.com/owner/repo/pull/number</p>
+          <p className="text-[11px] text-cat-security/90 mt-2">URL must match github.com/owner/repo/pull/number</p>
         )}
-      </label>
+      </div>
 
       {error && (
-        <div className="text-sm text-severity-high bg-severity-critical/10 border border-severity-critical/30 rounded px-3 py-2">
+        <div className="text-xs text-white/80 bg-cat-security/5 border-l-2 border-cat-security/60 px-3 py-2 rounded">
           {error}
         </div>
       )}
 
       {files.length > 0 && (
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-300">
-            Select file to review ({files.length} changed)
+          <label className="text-[10px] uppercase tracking-wider text-white/40 font-medium">
+            Select file ({files.length} changed)
           </label>
           <select
             value={selectedFile}
             onChange={(e) => setSelectedFile(e.target.value)}
-            className="bg-bg-elevated border border-border-subtle rounded px-3 py-2 text-sm text-white"
+            className="glass-select"
+            style={{ padding: '8px 12px', borderRadius: '8px' }}
           >
             {files.map(f => (
               <option key={f.filename} value={f.filename}>{f.filename}</option>
             ))}
           </select>
-          <button onClick={applyFile} className="btn-primary text-sm">
+          <button onClick={applyFile} className="btn-primary mt-1">
             Load into editor
           </button>
+        </div>
+      )}
+
+      {files.length === 0 && !error && !loading && (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-xs text-white/35 text-center max-w-xs">
+            Paste a public GitHub PR URL to fetch its changed files.
+          </p>
         </div>
       )}
     </div>

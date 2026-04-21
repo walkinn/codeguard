@@ -16,7 +16,13 @@ export function useReview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language, categories }),
       });
-      const body = await res.json();
+      const text = await res.text();
+      if (!text) {
+        throw new Error(`Server returned an empty response (HTTP ${res.status}). The analysis may have timed out — try again.`);
+      }
+      let body;
+      try { body = JSON.parse(text); }
+      catch { throw new Error(`Server returned an invalid response (HTTP ${res.status}). Check the server terminal for errors.`); }
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       setResult(body);
     } catch (err) {
