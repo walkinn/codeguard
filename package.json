@@ -1,0 +1,14 @@
+{
+  "name": "codeguard-ai",
+  "version": "1.0.0",
+  "description": "AI-powered code review and security audit tool",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan,magenta\" \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "install:all": "cd client && npm install && cd ../server && npm install && cd .. && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
