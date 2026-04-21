@@ -6,7 +6,7 @@ CodeGuard AI is a full-stack code review and security audit tool that catches vu
 
 ## Why this exists
 
-Vibe coding — prompting an LLM and shipping the output — gets you to a working app fast, but it also ships with security holes: hardcoded keys, SQL injection, `eval`-based input handling, debug mode in production. Linters miss most of this; CodeGuard wraps GPT-4o with a dedicated security-engineer prompt to catch what slips through.
+Vibe coding — prompting an LLM and shipping the output — gets you to a working app fast, but it also ships with security holes: hardcoded keys, SQL injection, `eval`-based input handling, debug mode in production. Linters miss most of this; CodeGuard wraps Anthropic Claude with a dedicated security-engineer prompt to catch what slips through.
 
 ## Features
 
@@ -28,7 +28,7 @@ Vibe coding — prompting an LLM and shipping the output — gets you to a worki
 ```bash
 git clone <this-repo> codeguard-ai
 cd codeguard-ai
-cp server/.env.example server/.env    # add your OPENAI_API_KEY
+cp server/.env.example server/.env    # add your ANTHROPIC_API_KEY
 make install
 make dev
 ```
@@ -41,7 +41,7 @@ Click **Load Example** → **Run Review** to see the vulnerable Flask app get sh
 
 - **Frontend:** React 18 (Vite) + Tailwind CSS + Monaco Editor
 - **Backend:** Node.js + Express (ES modules)
-- **AI:** OpenAI GPT-4o via the official SDK
+- **AI:** Anthropic Claude (claude-sonnet-4) via the official SDK
 - **No database** — session-based, everything lives in React state
 
 ## Project structure
@@ -57,7 +57,7 @@ codeguard-ai/
 ├── server/                    # Express API
 │   └── src/
 │       ├── routes/review.js           # POST /api/review + /api/review/github
-│       ├── services/analyzer.js       # OpenAI call + JSON validation
+│       ├── services/analyzer.js       # Anthropic Claude call + JSON validation
 │       ├── services/github.js         # Public PR diff fetcher
 │       ├── prompts/security-review.js # System prompt template
 │       └── utils/lineNumberer.js

@@ -3,7 +3,7 @@
 const TECH = [
   { label: 'React', color: 'bg-sky-500/15 text-sky-300 border-sky-500/30' },
   { label: 'Node.js', color: 'bg-green-500/15 text-green-300 border-green-500/30' },
-  { label: 'OpenAI GPT-4o', color: 'bg-purple-500/15 text-purple-300 border-purple-500/30' },
+  { label: 'Anthropic Claude', color: 'bg-orange-500/15 text-orange-300 border-orange-500/30' },
   { label: 'Tailwind CSS', color: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' },
   { label: 'Monaco Editor', color: 'bg-blue-500/15 text-blue-300 border-blue-500/30' },
   { label: 'Express', color: 'bg-gray-500/15 text-gray-300 border-gray-500/30' },
@@ -21,8 +21,8 @@ export default function AboutPage() {
           Vibe coding — prompting an LLM and shipping the output — gets you to a working app fast,
           but it also ships with surprising security holes: hardcoded keys, SQL injection, eval-based
           input handling, debug mode in production. Traditional linters miss most of this. CodeGuard
-          uses a security-focused prompt on top of GPT-4o to catch what human review and static analysis
-          commonly let slip through.
+          uses a security-focused prompt on top of Anthropic Claude to catch what human review and static
+          analysis commonly let slip through.
         </p>
       </section>
 

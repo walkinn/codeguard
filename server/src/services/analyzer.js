@@ -1,16 +1,22 @@
-// Calls OpenAI GPT-4o with the security-review system prompt and validates the JSON response.
-import OpenAI from 'openai';
+// Calls Anthropic Claude with the security-review system prompt and validates the JSON response.
+import Anthropic from '@anthropic-ai/sdk';
 import { buildSystemPrompt } from '../prompts/security-review.js';
 import { addLineNumbers, countLines } from '../utils/lineNumberer.js';
 
-const MODEL = 'gpt-4o';
+const MODEL = 'claude-sonnet-4-20250514';
+const MAX_TOKENS = 8192;
 
 function getClient() {
-  const key = process.env.OPENAI_API_KEY;
+  const key = process.env.ANTHROPIC_API_KEY;
   if (!key || key === 'your-key-here') {
-    throw new Error('OPENAI_API_KEY is not configured. Copy .env.example to .env and add your key.');
+    throw new Error('ANTHROPIC_API_KEY is not configured. Copy .env.example to .env and add your key.');
   }
-  return new OpenAI({ apiKey: key });
+  return new Anthropic({ apiKey: key });
+}
+
+function extractText(response) {
+  const block = response?.content?.find(b => b.type === 'text');
+  return block?.text || '';
 }
 
 function tryParseJson(text) {
@@ -74,13 +80,12 @@ Code to review (with line numbers):
 
 ${numbered}`;
 
-  const callOpenAI = async (extraInstruction = '') => {
-    return client.chat.completions.create({
+  const callAnthropic = async (extraInstruction = '') => {
+    return client.messages.create({
       model: MODEL,
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
+      max_tokens: MAX_TOKENS,
+      system: systemPrompt + (extraInstruction ? `\n\n${extraInstruction}` : ''),
       messages: [
-        { role: 'system', content: systemPrompt + (extraInstruction ? `\n\n${extraInstruction}` : '') },
         { role: 'user', content: userPrompt },
       ],
     });
@@ -88,19 +93,27 @@ ${numbered}`;
 
   let response;
   try {
-    response = await callOpenAI();
+    response = await callAnthropic();
   } catch (err) {
-    if (err.status === 429) throw new Error('OpenAI rate limit hit — try again in a moment.');
-    if (err.status === 401) throw new Error('OpenAI API key is invalid.');
-    throw new Error(`OpenAI API error: ${err.message || 'unknown'}`);
+    if (err instanceof Anthropic.RateLimitError || err?.status === 429) {
+      throw new Error('Anthropic rate limit hit — try again in a moment.');
+    }
+    if (err instanceof Anthropic.AuthenticationError || err?.status === 401) {
+      throw new Error('Anthropic API key is invalid.');
+    }
+    throw new Error(`Anthropic API error: ${err.message || 'unknown'}`);
   }
 
-  const text = response.choices?.[0]?.message?.content || '';
-  let parsed = tryParseJson(text);
+  let parsed = tryParseJson(extractText(response));
 
   if (!validateShape(parsed)) {
-    const retry = await callOpenAI('IMPORTANT: Your previous response was not valid JSON. Respond ONLY with a valid JSON object matching the schema. No markdown, no prose.');
-    parsed = tryParseJson(retry.choices?.[0]?.message?.content || '');
+    let retry;
+    try {
+      retry = await callAnthropic('IMPORTANT: Your previous response was not valid JSON. Respond ONLY with a valid JSON object matching the schema. No markdown, no prose, no code fences.');
+    } catch (err) {
+      throw new Error(`Anthropic API error on retry: ${err.message || 'unknown'}`);
+    }
+    parsed = tryParseJson(extractText(retry));
     if (!validateShape(parsed)) {
       throw new Error('Model returned invalid JSON after retry.');
     }
