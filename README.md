@@ -69,6 +69,23 @@ Grab an API key from https://console.anthropic.com/.
 
 ---
 
+## Deploying to Vercel
+
+The project is Vercel-ready. The Express server in `server/` is only used for local dev; in production the same routes run as serverless functions under `api/` (configured in `vercel.json`).
+
+```bash
+npm i -g vercel
+vercel                                    # link / create project, first deploy
+vercel env add ANTHROPIC_API_KEY production
+vercel --prod                             # redeploy with the env var
+```
+
+Vercel auto-detects `api/**/*.js` as Node serverless functions. Builds run `npm run vercel-build` (which installs client deps and produces `client/dist`). Functions have a 60s max duration — large GitHub PR reviews may hit this limit on the Hobby tier.
+
+`vercel.json` at the repo root pins the build and function config, so `vercel` with default prompts works without extra tweaking.
+
+---
+
 ## How it works
 
 1. **Frontend** — Monaco editor in the left pane, results panel in the right. The user picks categories, clicks *Run Review*, and the code (or GitHub PR file contents) is POSTed to the backend.
@@ -101,15 +118,20 @@ codeguard/
 │       ├── utils/exampleCode.js      # the vulnerable Flask sample
 │       ├── utils/exportReport.js     # markdown report builder + downloader
 │       └── App.jsx
-├── server/                           # Express API
+├── server/                           # Express API (local dev)
 │   └── src/
 │       ├── routes/review.js          # POST /api/review + /api/review/github
 │       ├── services/analyzer.js      # Anthropic Claude call + JSON validation
 │       ├── services/github.js        # public PR diff fetcher
 │       ├── prompts/security-review.js# system prompt template
 │       └── utils/lineNumberer.js
+├── api/                              # Vercel serverless functions (production)
+│   ├── health.js                     # GET  /api/health
+│   ├── review.js                     # POST /api/review
+│   └── review/github.js              # POST /api/review/github
+├── vercel.json                       # Vercel build + function config
 ├── Makefile
-└── package.json                      # concurrently runner
+└── package.json                      # root runner + shared deps
 ```
 
 ---

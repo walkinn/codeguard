@@ -9,4 +9,5 @@ build/
 .idea/
 coverage/
 .claude/
+.vercel/
 
