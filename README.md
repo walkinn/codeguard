@@ -62,7 +62,6 @@ npm run dev    # concurrently runs client (5173) + server (3001)
 ```
 ANTHROPIC_API_KEY=sk-ant-...      # required
 PORT=3001                         # optional, default 3001
-ANTHROPIC_MODEL=claude-opus-4-7   # optional, defaults to the Opus 4.x model configured in analyzer.js
 ```
 
 Grab an API key from https://console.anthropic.com/.
