@@ -23,7 +23,7 @@ Never put HTTP handlers in `server/`. Never duplicate `server/` logic in `api/`.
 - `api/review.js` — main review endpoint (POST: analyse code, return findings + fixes)
 - `api/review/github.js` — GitHub PR integration (webhook + comment-driven review)
 - `server/src/services/analyzer.js` — core vulnerability detection pipeline
-- `server/src/prompts/security-review.js` — Claude system prompt for review calls
+- `server/src/prompts/security-review.js` — Claude prompt template for review calls
 
 ## Design system
 
