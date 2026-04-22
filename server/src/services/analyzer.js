@@ -6,6 +6,68 @@ import { addLineNumbers, countLines } from '../utils/lineNumberer.js';
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 4096;
 
+const REVIEW_TOOL = {
+  name: 'return_review',
+  description: 'Return the full structured code review.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      language: { type: 'string' },
+      lines_analyzed: { type: 'integer' },
+      overall_grade: { type: 'string', enum: ['A', 'B', 'C', 'D', 'F'] },
+      overall_score: { type: 'integer' },
+      verdict: { type: 'string' },
+      issues: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            category: { type: 'string', enum: ['security', 'bug', 'bugs', 'performance', 'style'] },
+            severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'info'] },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            impact: { type: 'string' },
+            line_start: { type: 'integer' },
+            line_end: { type: 'integer' },
+            code_snippet: { type: 'string' },
+            fixes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  label: { type: 'string' },
+                  code: { type: 'string' },
+                  tradeoff: { type: 'string' },
+                },
+                required: ['label', 'code'],
+              },
+            },
+            owasp_category: { type: ['string', 'null'] },
+            cwe_id: { type: ['string', 'null'] },
+          },
+          required: ['title', 'description', 'severity', 'category', 'line_start', 'fixes'],
+        },
+      },
+      summary: {
+        type: 'object',
+        properties: {
+          critical_count: { type: 'integer' },
+          high_count: { type: 'integer' },
+          medium_count: { type: 'integer' },
+          low_count: { type: 'integer' },
+          info_count: { type: 'integer' },
+          security_issues: { type: 'integer' },
+          bug_issues: { type: 'integer' },
+          performance_issues: { type: 'integer' },
+          style_issues: { type: 'integer' },
+        },
+      },
+    },
+    required: ['overall_grade', 'overall_score', 'verdict', 'issues', 'summary'],
+  },
+};
+
 function getClient() {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key || key === 'your-key-here') {
@@ -75,30 +137,28 @@ Code to review (with line numbers):
 
 ${numbered}`;
 
-  const JSON_PREFILL = '{';
-  let fullText = '';
+  let parsed = null;
   let stopReason = null;
   try {
     const stream = client.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: systemPrompt,
-      messages: [
-        { role: 'user', content: userPrompt },
-        { role: 'assistant', content: JSON_PREFILL },
-      ],
+      tools: [REVIEW_TOOL],
+      tool_choice: { type: 'tool', name: REVIEW_TOOL.name },
+      messages: [{ role: 'user', content: userPrompt }],
     });
 
     if (typeof onDelta === 'function') {
-      stream.on('text', (chunk) => {
-        try { onDelta(chunk); } catch { /* swallow: never let UI callback kill the stream */ }
+      stream.on('inputJson', (partialJson) => {
+        try { onDelta(partialJson); } catch { /* swallow: never let UI callback kill the stream */ }
       });
     }
 
     const finalMessage = await stream.finalMessage();
-    const textBlock = finalMessage?.content?.find(b => b.type === 'text');
-    fullText = JSON_PREFILL + (textBlock?.text || '');
     stopReason = finalMessage?.stop_reason || null;
+    const toolUseBlock = finalMessage?.content?.find(b => b.type === 'tool_use');
+    parsed = toolUseBlock?.input || null;
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError || err?.status === 429) {
       throw new Error('Anthropic rate limit hit — try again in a moment.');
@@ -110,14 +170,13 @@ ${numbered}`;
   }
 
   if (stopReason === 'max_tokens') {
-    console.error('[analyzer] max_tokens hit; response length=', fullText.length);
+    console.error('[analyzer] max_tokens hit; result truncated');
     throw new Error('Response was truncated — try reviewing a smaller snippet or fewer categories.');
   }
 
-  const parsed = tryParseJson(fullText);
   if (!validateShape(parsed)) {
-    console.error('[analyzer] invalid JSON from model. stop_reason=', stopReason, 'length=', fullText.length, 'head=', fullText.slice(0, 500));
-    throw new Error('Model returned invalid JSON.');
+    console.error('[analyzer] invalid shape from tool_use. stop_reason=', stopReason, 'parsed=', JSON.stringify(parsed)?.slice(0, 500));
+    throw new Error('Model returned an incomplete review.');
   }
 
   return normalizeResult(parsed, language, lines);
