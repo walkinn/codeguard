@@ -1,5 +1,7 @@
 import { analyzeCode } from '../server/src/services/analyzer.js';
 
+export const config = { runtime: 'edge' };
+
 const VALID_CATEGORIES = ['security', 'bugs', 'performance', 'style'];
 
 function sanitizeCategories(input) {
@@ -8,60 +10,88 @@ function sanitizeCategories(input) {
   return filtered.length ? filtered : [...VALID_CATEGORIES];
 }
 
-export const config = { maxDuration: 60 };
-
-function writeFrame(res, payload) {
-  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+function jsonResponse(status, obj) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed.' });
+    return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', Allow: 'POST' },
+    });
   }
 
-  const { code, language, categories } = req.body || {};
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse(400, { error: 'Invalid JSON body.' });
+  }
+
+  const { code, language, categories } = body || {};
   if (typeof code !== 'string' || !code.trim()) {
-    return res.status(400).json({ error: 'Field "code" is required.' });
+    return jsonResponse(400, { error: 'Field "code" is required.' });
   }
   if (code.length > 200_000) {
-    return res.status(413).json({ error: 'Code too large (max ~200KB).' });
+    return jsonResponse(413, { error: 'Code too large (max ~200KB).' });
   }
 
-  res.status(200);
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  const encoder = new TextEncoder();
+  const sanitizedCategories = sanitizeCategories(categories);
 
-  let charsStreamed = 0;
-  let lastProgressAt = 0;
-  const heartbeat = setInterval(() => {
-    try { res.write(': heartbeat\n\n'); } catch { /* connection closed */ }
-  }, 10_000);
+  const stream = new ReadableStream({
+    async start(controller) {
+      let closed = false;
+      const write = (obj) => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)); } catch { /* connection dropped */ }
+      };
+      const heartbeat = setInterval(() => {
+        if (closed) return;
+        try { controller.enqueue(encoder.encode(': heartbeat\n\n')); } catch { /* connection dropped */ }
+      }, 10_000);
 
-  try {
-    const result = await analyzeCode({
-      code,
-      language: language || 'auto',
-      categories: sanitizeCategories(categories),
-      onDelta: (chunk) => {
-        charsStreamed += chunk.length;
-        const now = Date.now();
-        if (now - lastProgressAt >= 500) {
-          lastProgressAt = now;
-          writeFrame(res, { type: 'progress', chars: charsStreamed });
-        }
-      },
-    });
+      let charsStreamed = 0;
+      let lastProgressAt = 0;
 
-    writeFrame(res, { type: 'done', result });
-  } catch (err) {
-    console.error('[api/review]', err);
-    writeFrame(res, { type: 'error', error: err.message || 'Analysis failed.' });
-  } finally {
-    clearInterval(heartbeat);
-    res.end();
-  }
+      try {
+        const result = await analyzeCode({
+          code,
+          language: language || 'auto',
+          categories: sanitizedCategories,
+          onDelta: (chunk) => {
+            if (typeof chunk === 'string') charsStreamed = chunk.length;
+            else charsStreamed += (chunk?.length || 0);
+            const now = Date.now();
+            if (now - lastProgressAt >= 500) {
+              lastProgressAt = now;
+              write({ type: 'progress', chars: charsStreamed });
+            }
+          },
+        });
+        write({ type: 'done', result });
+      } catch (err) {
+        console.error('[api/review]', err);
+        write({ type: 'error', error: err?.message || 'Analysis failed.' });
+      } finally {
+        clearInterval(heartbeat);
+        closed = true;
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }
