@@ -4,7 +4,7 @@ import { buildSystemPrompt } from '../prompts/security-review.js';
 import { addLineNumbers, countLines } from '../utils/lineNumberer.js';
 
 const MODEL = 'claude-sonnet-4-6';
-const MAX_TOKENS = 8192;
+const MAX_TOKENS = 4096;
 
 function getClient() {
   const key = process.env.ANTHROPIC_API_KEY;
