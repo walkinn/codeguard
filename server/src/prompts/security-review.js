@@ -101,10 +101,15 @@ The code is provided with line numbers prefixed to every line (format: "  12 | c
 - Leftover debug code: console.log, print, debugger, TODO/FIXME
 
 FIX GUIDANCE:
-- For CRITICAL and HIGH severity issues, provide 2-3 alternative fix approaches with tradeoff notes (e.g., quick patch vs. production-grade refactor).
-- For MEDIUM and LOW, one good fix is enough.
+- For CRITICAL issues, provide up to 2 alternative fix approaches.
+- For HIGH/MEDIUM/LOW/INFO, one good fix is enough.
 - Every fix's "code" field must be a complete, copy-pasteable replacement for the vulnerable snippet.
-- The "tradeoff" field should explain WHY this approach (security, perf, readability).
+- The "tradeoff" field should explain WHY this approach (security, perf, readability) — one sentence.
+
+BREVITY:
+- Return at most 12 issues total. If there are more, keep the 12 MOST IMPACTFUL (highest severity, clearest exploit path).
+- "description" under 400 chars, "impact" under 200, "verdict" under 200, "code_snippet" under 300, "tradeoff" under 200.
+- Do not pad. Every sentence must carry new information.
 </security_checks>
 
 <scoring_rubric>

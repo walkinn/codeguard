@@ -4,47 +4,51 @@ import { buildSystemPrompt } from '../prompts/security-review.js';
 import { addLineNumbers, countLines } from '../utils/lineNumberer.js';
 
 const MODEL = 'claude-sonnet-4-6';
-const MAX_TOKENS = 4096;
+const MAX_TOKENS = 8192;
+const MAX_ISSUES = 12;
+const MAX_FIXES_PER_ISSUE = 2;
 
 const REVIEW_TOOL = {
   name: 'return_review',
-  description: 'Return the full structured code review.',
+  description: 'Return the full structured code review. Be concise: cap at the 12 most impactful issues, prefer 1 fix per issue (2 only for critical).',
   input_schema: {
     type: 'object',
     properties: {
-      language: { type: 'string' },
+      language: { type: 'string', maxLength: 40 },
       lines_analyzed: { type: 'integer' },
       overall_grade: { type: 'string', enum: ['A', 'B', 'C', 'D', 'F'] },
       overall_score: { type: 'integer' },
-      verdict: { type: 'string' },
+      verdict: { type: 'string', maxLength: 200 },
       issues: {
         type: 'array',
+        maxItems: MAX_ISSUES,
         items: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
+            id: { type: 'string', maxLength: 40 },
             category: { type: 'string', enum: ['security', 'bug', 'bugs', 'performance', 'style'] },
             severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'info'] },
-            title: { type: 'string' },
-            description: { type: 'string' },
-            impact: { type: 'string' },
+            title: { type: 'string', maxLength: 120 },
+            description: { type: 'string', maxLength: 400 },
+            impact: { type: 'string', maxLength: 200 },
             line_start: { type: 'integer' },
             line_end: { type: 'integer' },
-            code_snippet: { type: 'string' },
+            code_snippet: { type: 'string', maxLength: 300 },
             fixes: {
               type: 'array',
+              maxItems: MAX_FIXES_PER_ISSUE,
               items: {
                 type: 'object',
                 properties: {
-                  label: { type: 'string' },
+                  label: { type: 'string', maxLength: 60 },
                   code: { type: 'string' },
-                  tradeoff: { type: 'string' },
+                  tradeoff: { type: 'string', maxLength: 200 },
                 },
                 required: ['label', 'code'],
               },
             },
-            owasp_category: { type: ['string', 'null'] },
-            cwe_id: { type: ['string', 'null'] },
+            owasp_category: { type: ['string', 'null'], maxLength: 80 },
+            cwe_id: { type: ['string', 'null'], maxLength: 20 },
           },
           required: ['title', 'description', 'severity', 'category', 'line_start', 'fixes'],
         },

@@ -38,7 +38,7 @@ Never put HTTP handlers in `server/`. Never duplicate `server/` logic in `api/`.
 - **`api/*` is load-bearing — STOP before editing.** Summarise intent, wait for approval
 - `server/src/prompts/*.js` is load-bearing. Prompt edits reviewed before commit
 - Model pin: `claude-sonnet-4-6`. Do not bump without approval
-- `api/review.js` `max_tokens`: **4096** — do not raise
+- `api/review.js` `max_tokens`: **8192** — do not raise without approval
 - `vercel.json` `maxDuration` for review endpoints: **60**
 - GitHub webhook: verify signature, never log raw bodies
 
