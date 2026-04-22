@@ -14,11 +14,6 @@ function getClient() {
   return new Anthropic({ apiKey: key });
 }
 
-function extractText(response) {
-  const block = response?.content?.find(b => b.type === 'text');
-  return block?.text || '';
-}
-
 function tryParseJson(text) {
   try {
     return JSON.parse(text);
@@ -65,7 +60,7 @@ function normalizeResult(result, fallbackLanguage, fallbackLines) {
   return result;
 }
 
-export async function analyzeCode({ code, language, categories }) {
+export async function analyzeCode({ code, language, categories, onDelta }) {
   if (!code || !code.trim()) {
     throw new Error('Code is empty.');
   }
@@ -80,20 +75,24 @@ Code to review (with line numbers):
 
 ${numbered}`;
 
-  const callAnthropic = async (extraInstruction = '') => {
-    return client.messages.create({
+  let fullText = '';
+  try {
+    const stream = client.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: systemPrompt + (extraInstruction ? `\n\n${extraInstruction}` : ''),
-      messages: [
-        { role: 'user', content: userPrompt },
-      ],
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
     });
-  };
 
-  let response;
-  try {
-    response = await callAnthropic();
+    if (typeof onDelta === 'function') {
+      stream.on('text', (chunk) => {
+        try { onDelta(chunk); } catch { /* swallow: never let UI callback kill the stream */ }
+      });
+    }
+
+    const finalMessage = await stream.finalMessage();
+    const textBlock = finalMessage?.content?.find(b => b.type === 'text');
+    fullText = textBlock?.text || '';
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError || err?.status === 429) {
       throw new Error('Anthropic rate limit hit — try again in a moment.');
@@ -104,19 +103,9 @@ ${numbered}`;
     throw new Error(`Anthropic API error: ${err.message || 'unknown'}`);
   }
 
-  let parsed = tryParseJson(extractText(response));
-
+  const parsed = tryParseJson(fullText);
   if (!validateShape(parsed)) {
-    let retry;
-    try {
-      retry = await callAnthropic('IMPORTANT: Your previous response was not valid JSON. Respond ONLY with a valid JSON object matching the schema. No markdown, no prose, no code fences.');
-    } catch (err) {
-      throw new Error(`Anthropic API error on retry: ${err.message || 'unknown'}`);
-    }
-    parsed = tryParseJson(extractText(retry));
-    if (!validateShape(parsed)) {
-      throw new Error('Model returned invalid JSON after retry.');
-    }
+    throw new Error('Model returned invalid JSON.');
   }
 
   return normalizeResult(parsed, language, lines);
