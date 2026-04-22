@@ -75,13 +75,18 @@ Code to review (with line numbers):
 
 ${numbered}`;
 
+  const JSON_PREFILL = '{';
   let fullText = '';
+  let stopReason = null;
   try {
     const stream = client.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [
+        { role: 'user', content: userPrompt },
+        { role: 'assistant', content: JSON_PREFILL },
+      ],
     });
 
     if (typeof onDelta === 'function') {
@@ -92,7 +97,8 @@ ${numbered}`;
 
     const finalMessage = await stream.finalMessage();
     const textBlock = finalMessage?.content?.find(b => b.type === 'text');
-    fullText = textBlock?.text || '';
+    fullText = JSON_PREFILL + (textBlock?.text || '');
+    stopReason = finalMessage?.stop_reason || null;
   } catch (err) {
     if (err instanceof Anthropic.RateLimitError || err?.status === 429) {
       throw new Error('Anthropic rate limit hit — try again in a moment.');
@@ -103,8 +109,14 @@ ${numbered}`;
     throw new Error(`Anthropic API error: ${err.message || 'unknown'}`);
   }
 
+  if (stopReason === 'max_tokens') {
+    console.error('[analyzer] max_tokens hit; response length=', fullText.length);
+    throw new Error('Response was truncated — try reviewing a smaller snippet or fewer categories.');
+  }
+
   const parsed = tryParseJson(fullText);
   if (!validateShape(parsed)) {
+    console.error('[analyzer] invalid JSON from model. stop_reason=', stopReason, 'length=', fullText.length, 'head=', fullText.slice(0, 500));
     throw new Error('Model returned invalid JSON.');
   }
 
